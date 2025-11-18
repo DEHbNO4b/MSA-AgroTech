@@ -1,0 +1,112 @@
+@startuml
+title FitLife / AgroTech Code Diagram — Variant 1 (Edge-heavy)
+
+top to bottom direction
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+class Operator {
+  +String id
+  +String email
+  +String telefon
+  +void login()
+  +void viewDashboard()
+}
+
+class Message {
+  +String type
+  +Datetime created_at
+  +String text
+  +Int operator_id
+  +void send()
+}
+
+class Report{
+  +Date range_start
+  +Date range_end
+  +String metrics
+  +void view()
+}
+
+class Analitic {
+  +Date date
+  +String activity
+  +void login()
+  +void addMetrics()
+  +Report getReport()
+}
+
+class Sensor {
+  +String id
+  +String type
+  +float value
+  +Datetime ts
+  +void read()
+}
+
+class VideoEvent {
+  +String id
+  +String event_type
+  +Datetime detected_at
+  +String video_fragment
+}
+
+class VideoAnalyticsService {
+  +VideoEvent detectEvent(videoStream)
+}
+
+class ScadaController {
+  +void updateClimate()
+  +void setFeederMode()
+}
+
+class LocalNotifier {
+  +void sendSMS()
+  +void sendLocalAlert()
+}
+
+Operator "1" -- "0..*" Message : sends >
+Operator "1" -- "0..*" Sensor : monitors >
+Analitic "1" -- "0..*" Report : creates >
+VideoAnalyticsService "1" -- "0..*" VideoEvent : detects >
+ScadaController "1" -- "0..*" Sensor : uses >
+LocalNotifier "1" -- "0..*" Message : dispatches >
+
+@enduml
+
+' @startuml
+' title FitLife Membership Management Code Diagram
+
+' top to bottom direction
+
+' !includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+' class Operator {
+'   +String id
+'   +String email
+'   +String telefon
+' }
+
+' class Message {
+'   +String type
+'   +Datetime created_at
+'   +String text
+'   +Int operator_id
+'   +void send()
+' }
+
+' class Report{
+'   +void view()
+' }
+
+' class Analitic {
+'   +Date date
+'   +String activity
+'   +void login()
+'   +void addMetrics()
+'   +Report getReport()
+' }
+
+' Operator "1" -- "0..*" Message : has
+' Analitic "1" -- "0..*" Report : has
+
+' @enduml

@@ -1,0 +1,70 @@
+@startuml Container Diagram V1 - Edge-heavy Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Контейнерная диаграмма Вариант 1: Edge-heavy микросервисная архитектура
+
+Person(оператор, "Оператор", "Использует мобильное приложение")
+Person(директор, "Директор", "Просматривает сводные отчеты и аналитику")
+Person(аналитик, "Аналитик", "Работа с BI-системой")
+
+System_Ext(телеком, "Телеком оператор", "Телеком оператор для отправки смс")
+
+System_Boundary(edge_boundary, "Ферма (Edge-сервер)") {
+    ' Container(mobile_app, "мониторинг", "Java/Cotlin", "Мобильное приложение оператора для мониторинга и управления")
+    Container_Boundary(collector, "коллектор данных"){
+        Container(sensor_collector, "датчики", "Go", "Прием, структурирование данных с датчиков")
+        Container(video_collector, "видео", "Go", "Прием даных с видеокамер")
+    }
+    Container(feed_control, "Feed & Water Control Service", "Go", "Управление кормушками и поилками")
+    Container(video_analytics, "Video Analytics Service", "Python/OpenCV", "Локальный анализ видеопотока и детекция событий")
+    Container(local_notifier, "Local Notification Service", "Go", "Локальные оповещения о событиях")
+    Container(scada, "SCADA система", "Ignition", "Управление климатом")
+}
+System_Ext(sensors,"датчики","датчики контроля за фермой")
+System_Ext(video,"видеокамеры","видеокамеры фермы")
+
+System_Boundary(central_boundary, "Центральная система мониторинга АгроТех Х") {
+    Container(kafka, "Брокер сообщений", "Apache Kafka", "Шина данных")
+    Container(аналитика, "Аналитический модуль", "Python+Spark", "Отчёты, дашборды, аналитика")
+    Container_Boundary(users_api, "Users API","REST") {
+        Container(веб_портал, "Веб-портал", "React", "Управление хозяйством")
+        Container(мобильное_приложение, "Мобильное приложение", "Flutter", "Полевые работы")
+    }
+    Container(bi, "BI система", "Power BI", "Отчеты и визуализация")
+    Container_Boundary(данные, "Хранилища данных") {
+        ContainerDb(data_lake, "Data Lake", "MinIO", "Сырые данные (S3-совместимое)")
+        ContainerDb(dwh, "Data Warehouse", "ClickHouse", "Структурированные данные")
+    }
+    Container(iam,"IAM service", "аутентификация, авторизация")
+}
+
+System_Ext(external_api, "Внешний API", "API для интеграции внешних систем")
+
+' Центральная Kafka
+Rel(kafka, data_lake, "Сырые данные", "Kafka Connect+S3")
+Rel(kafka, dwh, "Трансформированные данные", "ETL+Airflow")
+Rel(video_analytics,kafka,  "отправляет метаданные", "Kafka Protocol")
+Rel(sensor_collector, kafka, "Публикует данные", "MQTT->Kafka")
+Rel(scada, kafka, "Публикует данные фермы", "OPC UA->Kafka")
+
+' edge 
+Rel(video_collector, video_analytics, "отправляет видео на анализ")
+Rel(scada, feed_control, "управляет")
+Rel(sensor_collector,scada, "Передает данные", "LoRaWAN")
+Rel(video_analytics,local_notifier,  "оповещения")
+Rel(local_notifier,телеком,  "оповещения")
+Rel(телеком, оператор, "смс оповещения")
+Rel(sensors, sensor_collector, "смс оповещения")
+Rel(video, video_collector, "смс оповещения")
+
+' central server 
+Rel(аналитик, bi, "Анализирует")
+Rel(dwh,аналитика,  "читает данные, анализирует и сохраняет результаты")
+Rel(data_lake, аналитика, "Доступ к сырым данным", "Spark")
+Rel(аналитика, веб_портал, "Формирует рекомендации", "WebSocket")
+Rel(аналитика, bi, "Передает отчеты", "ODBC")
+Rel(директор, веб_портал, "использует")
+Rel(external_api, веб_портал, "внешний апи")
+Rel(users_api, iam, "проверка пользователя")
+
+@enduml
