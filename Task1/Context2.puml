@@ -1,0 +1,25 @@
+@startuml Context Diagram V1 - Edge-Heavy микросервисная архитектура
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Контекстная диаграмма Вариант 1:  Edge-Heavy микросервисная архитектура
+
+Person(оператор, "Оператор фермы")
+Person(аналитик, "аналитик")
+
+System(central_server, "Центральная система", "аналитика, отчетность, метрики")
+System(edge_agent, "Edge-сервер фермы", "Локальный сбор данных, управление устройствами")
+
+System_Ext(видеоаналитика, "Сервис видеоаналитики", "детекция аномального поведения.трекинг")
+
+System_Ext(api, "Внешний API", "API для интеграции внешних систем")
+
+' Connections
+Rel(оператор, central_server, "Получает уведомления")
+Rel(аналитик, central_server, "использует")
+
+Rel(edge_agent, central_server, "Отправляет данные для анализа")
+Rel(central_server, видеоаналитика, "Видеоаналитика")
+
+Rel(central_server, api, "Предоставляет внешний API")
+
+@enduml

@@ -1,0 +1,74 @@
+@startuml Container Diagram V2 - Central-heavy Architecture
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Контейнерная диаграмма Вариант 2: Central-heavy микросервисная архитектура
+
+Person(зоотехник, "Зоотехник", "Использует мобильное приложение")
+Person(директор, "Директор", "Просматривает сводные отчеты и аналитику")
+Person(аналитик, "Аналитик", "Работа с BI-системой")
+
+System_Ext(sensors,"Датчики","контролируют параметры на ферме")
+System_Ext(video,"Видеокамеры","видеонаблюдение фермы")
+System_Ext(external_api, "Внешний API", "Интеграция внешних систем")
+
+' ================================================================
+'                    EDGE (минимальная логика)
+' ================================================================
+System_Boundary(edge_boundary, "Ферма (Edge-устройство)") {
+    Container(mobile_app, "Мобильное приложение", "Java/Cotlin", "Мобильное приложение оператора для мониторинга и управления")
+    Container(feed_control, "Feed & Water Control Service", "Go", "Управление кормушками и поилками")
+    Container(sensor_collector, "Коллектор данных", "Go", "сбор данных видеокамер и датчиков")
+    Container_Boundary(edge_data_storage, "Хранилища данных") {
+        ContainerDb(edge_data_lake, "Data Lake", "S3/MinIO", "Сырые данные")
+        ContainerDb(edge_dwh, "Data Warehouse", "ClickHouse", "Структурированные данные")
+    }
+    Container(edge_api, "Edge API Gateway", "Go",    "Передача данных в центральный сервер")
+    Container(edge_notifier, "Edge Notification Service", "Go", "Оповещения о событиях")
+}
+
+' ================================================================
+'                        CENTRAL PLATFORM
+' ================================================================
+System_Boundary(central_boundary, "Центральная система АгроТех Х") {
+    Container(central_api, "Central API Gateway", "Go",    "Единый вход для данных от Edge и внешних клиентов")
+    Container(video_analytics, "Video Analytics (ML/AI)", "Python + GPU",    "Централизованная обработка видеопотоков, детекция событий")
+    Container(веб_портал, "Веб-портал", "React",    "Управление хозяйством, мониторинг данных")
+    Container(bi, "BI система", "Power BI",    "Отчеты и визуализация (через DWH)")
+    Container_Boundary(data_storage, "Хранилища данных") {
+        ContainerDb(dwh, "Data Warehouse", "ClickHouse", "Структурированные данные")
+    }
+    Container(notifier, "Notification Service", "Go", "Оповещения о событиях")
+    Container(iam,"IAM service", "аутентификация, авторизация")
+}
+
+' ================================================================
+'                         RELATIONS
+' ================================================================
+
+' Edge
+Rel(mobile_app, edge_dwh ,"просмотр данных")
+Rel(sensor_collector, edge_data_lake, "сохранение сырых данных")
+Rel(sensor_collector, edge_dwh, "сохранение структурированных данных")
+Rel(mobile_app, feed_control, "настройка режимов")
+Rel(зоотехник, mobile_app, "Использует для мониторинга и управления системой")
+Rel(sensors, sensor_collector, "посылает данные с датчиков")
+Rel(video, sensor_collector, "посылает данные с видеокамер")
+Rel(edge_data_lake, edge_api, "считывает")
+Rel(edge_dwh, edge_api, "считывает")
+
+Rel(edge_api,central_api,  "отправка данных")
+
+' Центр
+Rel(аналитик, bi, "Анализирует")
+Rel(central_api, dwh, "метаданные")
+Rel(central_api, video_analytics, "выдеоданные")
+Rel(dwh,bi,  "читает данные", "ODBC")
+Rel(video_analytics, dwh, "сохранение данных")
+Rel(video_analytics, notifier, "Оповещения о внештатных ситуациях")
+Rel(notifier, edge_notifier, "отправляет данные")
+Rel(dwh,веб_портал,  "Просмотр")
+Rel(директор, веб_портал, "использует")
+Rel(external_api, веб_портал, "интегрируется")
+Rel(веб_портал, iam, "проверка пользователя")
+
+@enduml

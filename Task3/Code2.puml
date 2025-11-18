@@ -1,0 +1,90 @@
+@startuml
+title AgroTech Code Diagram — Variant 2 (Central-heavy)
+
+top to bottom direction
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+class EdgeDevice {
+  +String id
+  +String location
+  +void pushSensorData()
+  +void pushVideoFrame()
+}
+
+class SensorData {
+  +String id
+  +String sensor_id
+  +float value
+  +Datetime ts
+}
+
+class VideoFrame {
+  +String id
+  +Binary blob
+  +Datetime ts
+}
+
+class DataIngestService {
+  +void receiveSensorData()
+  +void receiveVideoData()
+}
+
+class EventCorrelator {
+  +VideoEvent analyzeVideo(VideoFrame frame)
+  +Anomaly detectAnomaly(SensorData data)
+}
+
+class VideoEvent {
+  +String id
+  +String type
+  +Datetime detected_at
+}
+
+class CentralAnalytics {
+  +void buildDashboard()
+  +CentralReport generateReport()
+}
+
+class CentralReport {
+  +Date start_date
+  +Date end_date
+  +String analytics
+}
+
+class CentralNotifier {
+  +void sendSMS()
+  +void sendPush()
+}
+
+class IAM {
+  +void authenticate()
+  +void authorize()
+}
+
+class Director {
+  +String id
+  +void viewPortal()
+}
+
+class Analyst {
+  +String id
+  +void login()
+  +CentralReport getReport()
+}
+
+EdgeDevice "1" -- "0..*" SensorData : sends >
+EdgeDevice "1" -- "0..*" VideoFrame : sends >
+
+DataIngestService "1" -- "0..*" SensorData : receives >
+DataIngestService "1" -- "0..*" VideoFrame : receives >
+
+EventCorrelator "1" -- "0..*" VideoEvent : creates >
+CentralAnalytics "1" -- "0..*" CentralReport : generates >
+CentralNotifier "1" -- "0..*" VideoEvent : notifies >
+
+Analyst "1" -- "0..*" CentralReport : reads >
+Director "1" -- CentralAnalytics : uses >
+IAM <.. Director
+IAM <.. Analyst
+
+@enduml
